@@ -64,7 +64,6 @@ export function Sidebar({ active, onChange, alertCount = 0 }) {
 
       <div style={{ padding: '12px', borderTop: '1px solid var(--border)', marginTop: '12px' }}>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-3)' }}>Milkyway AI v1.0</div>
-        <div style={{ fontSize: '0.67rem', color: 'var(--text-3)', marginTop: '3px' }}>Portfolio Edition</div>
       </div>
     </aside>
   )

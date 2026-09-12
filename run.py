@@ -41,7 +41,7 @@ def main():
     print("""
   +====================================================+
   |  Milkyway AI  --  Production Monitor               |
-  |  YOLOv8n  mAP@50: 98.4%  Portfolio v1.0            |
+  |  YOLOv8n  mAP@50: 98.4%                            |
   +====================================================+
     """)
     print(f"  Dashboard  : http://{args.host}:{args.port}")

@@ -113,7 +113,7 @@ def _make_synthetic_frame(
 
 class DemoProducer:
     """
-    Generates a synthetic detection stream for demo/portfolio use.
+    Generates a synthetic detection stream for demo use.
     Simulates realistic production line variability.
     """
 

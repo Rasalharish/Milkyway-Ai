@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # 🥛 Milkyway AI
 
@@ -296,9 +296,7 @@ Milkyway_AI/
 
 ## 📄 License
 
-Built on the **Muralya Milk Bottle Detection** model by Soorya Narayan.  
-YOLOv8 weights trained on proprietary Muralya Dairy dataset.  
-Portfolio implementation — not for commercial redistribution.
+YOLOv8 weights trained on proprietary dairy dataset.  
 
 ---
 
