@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Milkyway AI — Dairy Production Monitor</title>
+  <meta name="description" content="AI-powered dairy production monitoring using YOLOv8 real-time milk bottle detection on conveyor belts.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ──────────────────────────────────────────────────────── TOP NAV ── -->
+<nav class="topnav" role="navigation" aria-label="Main navigation">
+  <div class="topnav-brand">
+    <div class="topnav-logo" role="img" aria-label="Milkyway AI logo">🥛</div>
+    <div>
+      <div class="topnav-title">Milk<span>Flow</span> AI</div>
+    </div>
+  </div>
+
+  <div class="topnav-badges">
+    <span class="badge badge-live" id="connection-badge">LIVE</span>
+    <span class="badge badge-demo">DEMO MODE</span>
+    <span class="badge badge-model">YOLOv8n · mAP 98.4%</span>
+  </div>
+
+  <div class="topnav-actions">
+    <button class="btn btn-ghost" id="btn-docs" onclick="window.open('/docs','_blank')">
+      📖 API Docs
+    </button>
+    <button class="btn btn-secondary" id="btn-export" onclick="exportData()">
+      ⬇ Export CSV
+    </button>
+    <button class="btn btn-primary" id="btn-reset-counter" onclick="resetCounter()">
+      🔄 Reset Count
+    </button>
+  </div>
+</nav>
+
+<!-- ──────────────────────────────────────────────────────── LAYOUT ── -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" role="navigation" aria-label="Page navigation">
+    <div class="sidebar-section">Monitoring</div>
+    <div class="sidebar-item active" id="nav-live" onclick="showPage('live')" role="button" tabindex="0">
+      <span class="icon">📡</span> Live Monitor
+    </div>
+    <div class="sidebar-item" id="nav-analytics" onclick="showPage('analytics')" role="button" tabindex="0">
+      <span class="icon">📊</span> Analytics
+    </div>
+    <div class="sidebar-item" id="nav-detect" onclick="showPage('detect')" role="button" tabindex="0">
+      <span class="icon">🔍</span> Image Detect
+    </div>
+
+    <div class="sidebar-section">System</div>
+    <div class="sidebar-item" id="nav-model" onclick="showPage('model')" role="button" tabindex="0">
+      <span class="icon">🧠</span> Model Info
+    </div>
+    <div class="sidebar-item" id="nav-alerts" onclick="showPage('alerts')" role="button" tabindex="0">
+      <span class="icon">🔔</span> Alerts
+      <span id="alert-badge" style="margin-left:auto;background:var(--danger);color:white;border-radius:99px;padding:1px 7px;font-size:0.65rem;font-weight:700;display:none">0</span>
+    </div>
+
+    <div style="flex:1"></div>
+    <div style="padding:12px;border-top:1px solid var(--border);margin-top:12px">
+      <div style="font-size:0.72rem;color:var(--text-muted)">Milkyway AI v1.0</div>
+      <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px">Portfolio Edition</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" role="main">
+
+    <!-- ─────────────────────────────────── PAGE: LIVE MONITOR ── -->
+    <div class="page active" id="page-live">
+
+      <!-- KPI Row -->
+      <div class="kpi-row">
+        <div class="kpi-card accent">
+          <span class="kpi-icon">🍼</span>
+          <div class="kpi-label">In Frame Now</div>
+          <div class="kpi-value accent" id="kpi-count">0</div>
+          <div class="kpi-delta">bottles detected</div>
+        </div>
+        <div class="kpi-card blue">
+          <span class="kpi-icon">📦</span>
+          <div class="kpi-label">Counted Today</div>
+          <div class="kpi-value blue" id="kpi-total">—</div>
+          <div class="kpi-delta">crossed line</div>
+        </div>
+        <div class="kpi-card amber">
+          <span class="kpi-icon">⚡</span>
+          <div class="kpi-label">Inference Speed</div>
+          <div class="kpi-value amber" id="kpi-fps">—</div>
+          <div class="kpi-delta">ms per frame</div>
+        </div>
+        <div class="kpi-card red">
+          <span class="kpi-icon">🔔</span>
+          <div class="kpi-label">Active Alerts</div>
+          <div class="kpi-value red" id="kpi-alerts">0</div>
+          <div class="kpi-delta">system notifications</div>
+        </div>
+      </div>
+
+      <!-- Main grid: camera feed + side panel -->
+      <div class="main-grid">
+
+        <!-- Camera Feed Card -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📹</span> Live Camera Feed
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost" style="font-size:0.75rem" id="btn-cam-toggle" onclick="toggleSource()">
+                  🎥 Switch to Camera
+                </button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:16px">
+              <div class="feed-container" id="feed-container">
+                <canvas id="live-canvas" width="1280" height="720"></canvas>
+                <div class="feed-overlay">
+                  <div class="feed-badge feed-badge-live" id="stream-status">● STREAMING</div>
+                  <div class="feed-badge feed-badge-count" id="feed-count-badge">0 bottles</div>
+                </div>
+                <div class="feed-info">
+                  <div class="feed-stat" id="feed-fps-stat">-- ms</div>
+                  <div class="feed-stat" id="feed-frame-stat">Frame --</div>
+                </div>
+              </div>
+
+              <!-- Live mini-chart -->
+              <div style="margin-top:16px">
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;font-weight:600">
+                  BOTTLE COUNT HISTORY (last 150 frames)
+                </div>
+                <div class="chart-wrapper" style="height:100px">
+                  <canvas id="live-count-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Side panel -->
+        <div class="side-panel">
+
+          <!-- Live Counter -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🍼 Production Counter</div>
+            </div>
+            <div class="counter-display">
+              <div class="counter-label">Total Bottles Today</div>
+              <div class="counter-value" id="counter-big">—</div>
+              <div class="counter-sub">crossed the counting line</div>
+            </div>
+          </div>
+
+          <!-- Alerts panel -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🔔 Recent Alerts</div>
+              <button class="btn btn-ghost" style="font-size:0.72rem" onclick="clearAlerts()">Clear</button>
+            </div>
+            <div class="card-body" style="padding:12px">
+              <div class="alert-list" id="alert-list">
+                <div class="alert-empty">✅ No active alerts</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Shift breakdown -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🕐 Shift Breakdown</div>
+            </div>
+            <div class="card-body" id="shift-breakdown">
+              <div class="shift-row">
+                <span class="shift-name">🌅 Morning</span>
+                <div class="shift-bar-wrap"><div class="shift-bar" id="shift-morning-bar" style="width:0%;background:var(--accent)"></div></div>
+                <span class="shift-val" id="shift-morning">—</span>
+              </div>
+              <div class="shift-row">
+                <span class="shift-name">☀️ Afternoon</span>
+                <div class="shift-bar-wrap"><div class="shift-bar" id="shift-afternoon-bar" style="width:0%;background:var(--accent2)"></div></div>
+                <span class="shift-val" id="shift-afternoon">—</span>
+              </div>
+              <div class="shift-row">
+                <span class="shift-name">🌙 Night</span>
+                <div class="shift-bar-wrap"><div class="shift-bar" id="shift-night-bar" style="width:0%;background:var(--warning)"></div></div>
+                <span class="shift-val" id="shift-night">—</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────── PAGE: ANALYTICS ── -->
+    <div class="page" id="page-analytics">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📊 Analytics Dashboard</div>
+          <div class="section-sub">Hourly production trends and historical metrics</div>
+        </div>
+        <button class="btn btn-secondary" onclick="loadAnalytics()">🔄 Refresh</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-row" id="analytics-kpis" style="margin-bottom:0">
+        <div class="kpi-card accent">
+          <span class="kpi-icon">📦</span>
+          <div class="kpi-label">Total Today</div>
+          <div class="kpi-value accent" id="an-total">—</div>
+          <div class="kpi-delta">bottles counted</div>
+        </div>
+        <div class="kpi-card blue">
+          <span class="kpi-icon">🎬</span>
+          <div class="kpi-label">Frames Processed</div>
+          <div class="kpi-value blue" id="an-frames">—</div>
+          <div class="kpi-delta">total frames</div>
+        </div>
+        <div class="kpi-card amber">
+          <span class="kpi-icon">⚡</span>
+          <div class="kpi-label">Avg Inference</div>
+          <div class="kpi-value amber" id="an-ms">—</div>
+          <div class="kpi-delta">ms per frame</div>
+        </div>
+        <div class="kpi-card red">
+          <span class="kpi-icon">📈</span>
+          <div class="kpi-label">Peak per Frame</div>
+          <div class="kpi-value red" id="an-peak">—</div>
+          <div class="kpi-delta">max bottles at once</div>
+        </div>
+      </div>
+
+      <!-- Hourly production chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📈 Hourly Production Volume (last 24h)</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrapper" style="height:260px">
+            <canvas id="hourly-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <!-- Shift chart -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🕐 Production by Shift</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height:240px">
+              <canvas id="shift-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance chart -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚡ Inference Speed Over Time</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrapper" style="height:240px">
+              <canvas id="perf-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────── PAGE: IMAGE DETECT ── -->
+    <div class="page" id="page-detect">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🔍 Image Detection</div>
+          <div class="section-sub">Upload an image to run YOLOv8 milk bottle detection</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📤 Upload Image</div>
+          </div>
+          <div class="card-body">
+            <div class="upload-zone" id="upload-zone">
+              <input type="file" id="image-file-input" accept="image/*" onchange="handleImageUpload(event)">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-label">Drop an image or click to browse</div>
+              <div class="upload-sub">JPG, PNG, WEBP — max 20MB</div>
+            </div>
+
+            <div id="upload-result">
+              <img id="result-image" src="" alt="Detection result">
+              <div class="detect-result-info" id="detect-info"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 Detection Details</div>
+          </div>
+          <div class="card-body" id="detect-details">
+            <div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:40px">
+              Upload an image to see detection results
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────── PAGE: MODEL INFO ── -->
+    <div class="page" id="page-model">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🧠 Model Information</div>
+          <div class="section-sub">YOLOv8n trained on 1,073 images at Muralya Dairy</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+        <!-- Performance Metrics -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Performance Metrics</div>
+          </div>
+          <div class="card-body">
+            <div class="metric-grid">
+              <div class="metric-item">
+                <div class="metric-name">mAP @ 50</div>
+                <div class="metric-val">98.4%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-name">mAP @ 50-95</div>
+                <div class="metric-val" style="color:var(--accent2)">64.1%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-name">Precision</div>
+                <div class="metric-val">93.9%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-name">Recall</div>
+                <div class="metric-val">97.0%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-name">Inference</div>
+                <div class="metric-val" style="color:var(--warning)">35.9ms</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-name">Parameters</div>
+                <div class="metric-val" style="color:var(--accent2);font-size:1.1rem">3.0M</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture Details -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏗️ Architecture</div>
+          </div>
+          <div class="card-body">
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">Model</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">YOLOv8n (nano)</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">GFLOPs</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">8.1</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">Input Size</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">640 × 640</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">Anchors</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">8,400</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">Classes</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">1 (milk_bottle)</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border)">Training Device</td><td style="padding:8px 0;font-weight:600;border-bottom:1px solid var(--border);text-align:right">Apple M5 MPS</td></tr>
+              <tr><td style="padding:8px 0;color:var(--text-muted)">Training Time</td><td style="padding:8px 0;font-weight:600;text-align:right">~2h 25m (100 epochs)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Graphs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📉 Training Curves</div>
+          <span style="font-size:0.75rem;color:var(--text-muted)">Loss + mAP over 100 epochs</span>
+        </div>
+        <div class="card-body">
+          <img src="/assets/training_graphs.png" alt="Training graphs" class="training-img" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <!-- PR Curve + Confusion Matrix -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Precision-Recall Curve</div>
+          </div>
+          <div class="card-body">
+            <img src="/assets/BoxPR_curve.png" alt="PR curve" class="training-img" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🗃️ Confusion Matrix</div>
+          </div>
+          <div class="card-body">
+            <img src="/assets/confusion_matrix_normalized.png" alt="Confusion matrix" class="training-img" onerror="this.style.display='none'">
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset Info -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📁 Dataset</div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;text-align:center">
+            <div><div style="font-size:1.8rem;font-weight:800;color:var(--accent)">1,073</div><div style="font-size:0.72rem;color:var(--text-muted)">Total Images</div></div>
+            <div><div style="font-size:1.8rem;font-weight:800;color:var(--accent2)">858</div><div style="font-size:0.72rem;color:var(--text-muted)">Train</div></div>
+            <div><div style="font-size:1.8rem;font-weight:800;color:var(--warning)">107</div><div style="font-size:0.72rem;color:var(--text-muted)">Validation</div></div>
+            <div><div style="font-size:1.8rem;font-weight:800;color:var(--danger)">108</div><div style="font-size:0.72rem;color:var(--text-muted)">Test</div></div>
+            <div><div style="font-size:1.8rem;font-weight:800;color:var(--text-primary)">1</div><div style="font-size:0.72rem;color:var(--text-muted)">Class</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────── PAGE: ALERTS ── -->
+    <div class="page" id="page-alerts">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🔔 Alert History</div>
+          <div class="section-sub">System events and production anomalies</div>
+        </div>
+        <button class="btn btn-secondary" onclick="loadAlerts()">🔄 Refresh</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Alerts</div>
+        </div>
+        <div class="card-body">
+          <div id="full-alert-list" class="alert-list">
+            <div class="alert-empty">Loading alerts…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" role="status" aria-live="polite"></div>
+
+<!-- Scripts -->
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/stream.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>

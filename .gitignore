@@ -1,0 +1,60 @@
+﻿# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Testing / tooling ────────────────────────────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ─── Virtual environments ─────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ─── Database (generated at runtime) ─────────────────────────────────────────
+storage/Milkyway.db
+storage/Milkyway.db-shm
+storage/Milkyway.db-wal
+
+# ─── Environment / secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ─── Frontend build artifacts ─────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/node_modules/.cache/
+
+# ─── OS / Editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Keep intentional large files ─────────────────────────────────────────────
+# assets/best.pt                   <- intentionally tracked (trained model)
+# assets/milk_bottle_detector.onnx <- intentionally tracked (ONNX export)
+# assets/*.png                     <- training curves, PR curve, confusion matrix

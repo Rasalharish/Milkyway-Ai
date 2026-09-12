@@ -1,0 +1,23 @@
+# Milkyway AI — Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core AI / Computer Vision
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+onnxruntime>=1.16.0
+
+# Web API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+websockets>=12.0
+
+# Data / Analytics
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+# Utilities
+aiofiles>=23.2.1
+Pillow>=10.0.0
+pydantic>=2.0.0
