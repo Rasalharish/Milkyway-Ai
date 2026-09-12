@@ -8,8 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
   connectStream('demo');
   loadSummary();
   setInterval(loadSummary, 30_000);  // refresh summary every 30s
-});
-
 /* ── Page navigation ─────────────────────────────────────────────────────── */
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
